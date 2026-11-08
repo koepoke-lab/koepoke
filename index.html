@@ -63,7 +63,7 @@
   .mid { position:relative; display:grid; grid-template-rows: 1fr 64px; gap:8px; min-height:0; }
   .stage { container-type: size; display:grid; place-items:center; min-height:0; }
   .ring { position:relative; width: min(100cqw, 100cqh); aspect-ratio: 1; display:grid; place-items:center; }
-  .ring svg.r { position:absolute; inset:0; width:100%; height:100%; transform: rotate(-90deg); }
+  .ring svg.r { position:absolute; inset:0; pointer-events:none; width:100%; height:100%; transform: rotate(-90deg); }
   .big { width: 76%; aspect-ratio:1; border-radius:50%; border:0; background: var(--teal); color:#fff; display:grid; grid-template-rows: 1fr auto; place-items:center; padding: 20% 0 15%; box-shadow: 0 8px 0 var(--teal-d), 0 14px 26px rgba(11,125,114,.28); transition: transform .08s, background .2s; }
   .big:active { transform: translateY(4px); box-shadow: 0 4px 0 var(--teal-d); }
   .big:disabled { background:#d5dee6; color:#33415e; box-shadow: 0 8px 0 #b5c2ce; cursor:not-allowed; }
