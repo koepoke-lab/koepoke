@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>こえぽけ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:#eef5f8; --card:#ffffff; --ink:#1e2b45; --muted:#4a5a70; --line:#d5e2ea; --edge:#8a9bb0;
+    --teal:#0b7d72; --teal-d:#0a6b62; --teal-l:#dff2ee; --rec:#cc3a30; --rec-d:#a82e26; --rec-l:#fde8e6;
+    --sun-l:#fff5d6; --sun-d:#7a5800;
+    --font: "BIZ UDPGothic","BIZ UDPゴシック","Noto Sans CJK JP","Noto Sans JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+    --num: "BIZ UDGothic","BIZ UDゴシック","Noto Sans Mono CJK JP",ui-monospace,monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--font); line-height:1.5; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 4px solid var(--ink); outline-offset: 2px; box-shadow: 0 0 0 8px #ffc845 !important; }
+  #kid { padding: 8px; }
+  .app { height: max(600px, calc(100dvh - 16px)); max-width: 1280px; margin: 0 auto; background: var(--card); border-radius: 24px; box-shadow: 0 2px 0 var(--line), 0 14px 32px rgba(30,43,69,.10); display:grid; grid-template-rows: 56px 60px 1fr; overflow:hidden; }
+  .app[data-mode="hira"] { word-spacing: .3em; }
+  .top { display:grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items:center; gap:14px; padding: 0 16px; background: var(--teal-l); }
+  .app[data-state="recording"] .top { background: var(--rec-l); }
+  .logo { display:flex; align-items:center; gap:8px; font-weight:700; font-size:22px; color:var(--teal-d); white-space:nowrap; word-spacing:normal; }
+  .dest { justify-self:start; display:flex; align-items:center; gap:8px; background:#fff; border-radius:999px; padding: 5px 14px 5px 10px; font-weight:700; font-size:18px; min-width:0; max-width:100%; }
+  .dest .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chip { font-size:16px; font-weight:700; border-radius:999px; padding:1px 10px; white-space:nowrap; }
+  .chip.self { background:#e6edfb; color:#28499a; } .chip.share { background:var(--sun-l); color:var(--sun-d); }
+  .mode { display:flex; background:#fff; border-radius:999px; padding:4px; gap:2px; }
+  .mode button { border:0; background:transparent; width:64px; height:44px; border-radius:999px; font-weight:700; font-size:20px; color:var(--muted); }
+  .mode button[aria-pressed="true"] { background:var(--teal); color:#fff; }
+  .steps { display:flex; align-items:center; justify-content:center; padding: 0 16px; border-bottom: 2px solid var(--line); }
+  .st { display:flex; align-items:center; gap:10px; width: 210px; justify-content:center; height:44px; border-radius:12px; font-weight:700; font-size:22px; color:#65758c; background:#f3f6f9; white-space:nowrap; }
+  .st .ic { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:#9aaabb; color:#fff; flex:0 0 auto; }
+  .st[data-s="now"] { background: var(--teal); color:#fff; } .st[data-s="now"] .ic { background:#fff; color: var(--teal); }
+  .app[data-state="recording"] .st[data-s="now"] { background: var(--rec); } .app[data-state="recording"] .st[data-s="now"] .ic { color: var(--rec); }
+  .st[data-s="done"] { color: var(--teal-d); background: var(--teal-l); } .st[data-s="done"] .ic { background: var(--teal); }
+  .st[data-s="fail"] { color: var(--sun-d); background: var(--sun-l); } .st[data-s="fail"] .ic { background: var(--sun-d); }
+  .link { width: 40px; height: 4px; background: var(--line); border-radius:2px; margin: 0 6px; } .link[data-s="done"] { background: var(--teal); }
+  .body { display:grid; grid-template-columns: 5fr 6fr; min-height:0; }
+  .left { position:relative; padding: 14px 16px 14px 18px; border-right: 2px solid var(--line); display:grid; grid-template-rows: 36px 1fr auto; gap:10px; min-height:0; }
+  .ptitle { display:flex; align-items:center; gap:10px; font-weight:700; font-size:22px; }
+  .tiles { display:grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); grid-auto-rows: 116px; gap:10px; align-content:start; overflow:auto; padding:4px; }
+  .tile { border: 3px solid var(--edge); background:#fff; border-radius:20px; display:grid; grid-template-rows: 52px 1fr; place-items:center; padding: 6px; font-weight:700; font-size:24px; }
+  .tile .lb { line-height:1.15; text-align:center; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break: normal; overflow-wrap:anywhere; }
+  .tile[aria-pressed="true"] { border-color: var(--teal); background: var(--teal-l); box-shadow: inset 0 0 0 3px var(--teal); }
+  .free { display:grid; gap:4px; }
+  .free input { height:52px; font: inherit; font-size:20px; font-weight:700; padding: 0 14px; border:3px solid var(--edge); border-radius:16px; }
+  .free small { display:flex; align-items:center; gap:6px; color: var(--rec-d); font-weight:700; font-size:16px; }
+  .lock { position:absolute; inset:0; background: rgba(255,255,255,.86); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; font-weight:700; font-size:22px; color: var(--muted); opacity:0; pointer-events:none; transition: opacity .2s; text-align:center; padding: 20px; line-break: strict; }
+  .lock.on { opacity:1; pointer-events:auto; }
+  .lock .who { font-size:34px; color: var(--ink); background:#fff; border:4px solid var(--teal); border-radius:20px; padding: 4px 22px; max-width: 90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .right { display:grid; grid-template-rows: 60px 1fr 44px; gap:8px; padding: 12px 18px 10px; min-height:0; text-align:center; }
+  .say { display:flex; align-items:center; justify-content:center; gap:10px; border-radius: 16px; font-weight:700; font-size:28px; padding: 0 14px; background:#f3f6f9; overflow:hidden; }
+  .say span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .say[data-k="rec"] { background: var(--rec-l); color: var(--rec-d); } .say[data-k="warn"] { background: var(--sun-l); color: var(--sun-d); }
+  .say[data-k="ok"] { background: var(--teal-l); color: var(--teal-d); } .say[data-k="bad"] { background: var(--rec-l); color: var(--rec-d); }
+  .dot { width:16px; height:16px; border-radius:50%; background: var(--rec); flex:0 0 auto; animation: blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity:.25; } }
+  .mid { position:relative; display:grid; grid-template-rows: 1fr 64px; gap:8px; min-height:0; }
+  .stage { container-type: size; display:grid; place-items:center; min-height:0; }
+  .ring { position:relative; width: min(100cqw, 100cqh); aspect-ratio: 1; display:grid; place-items:center; }
+  .ring svg.r { position:absolute; inset:0; width:100%; height:100%; transform: rotate(-90deg); }
+  .big { width: 76%; aspect-ratio:1; border-radius:50%; border:0; background: var(--teal); color:#fff; display:grid; grid-template-rows: 1fr auto; place-items:center; padding: 20% 0 15%; box-shadow: 0 8px 0 var(--teal-d), 0 14px 26px rgba(11,125,114,.28); transition: transform .08s, background .2s; }
+  .big:active { transform: translateY(4px); box-shadow: 0 4px 0 var(--teal-d); }
+  .big:disabled { background:#d5dee6; color:#33415e; box-shadow: 0 8px 0 #b5c2ce; cursor:not-allowed; }
+  .big.rec { background: var(--rec); box-shadow: 0 8px 0 var(--rec-d), 0 14px 26px rgba(204,58,48,.28); }
+  .big .bl { font-size: clamp(22px, 9cqh, 32px); font-weight:700; letter-spacing:.04em; width: 7em; word-spacing:normal; }
+  .big svg { width: clamp(44px, 22cqh, 70px); height:auto; }
+  .tm { display:grid; grid-template-columns: auto 1fr; gap:14px; align-items:center; }
+  .time { display:flex; align-items:baseline; gap:6px; font-family: var(--num); }
+  .time .now { font-size: 46px; font-weight:700; line-height:1; width: 3.2em; text-align:right; }
+  .time .max { font-size: 20px; font-weight:700; color: var(--muted); }
+  .meter { display:grid; grid-template-columns: 44px 1fr; align-items:center; gap:10px; height:64px; background:#f3f6f9; border-radius: 16px; padding: 0 12px; }
+  .meter .mic { width:40px; height:40px; border-radius:50%; background:#9aaabb; display:grid; place-items:center; }
+  .app[data-state="recording"] .meter { background: var(--rec-l); } .app[data-state="recording"] .meter .mic { background: var(--rec); }
+  .bars { display:flex; align-items:center; gap:4px; height:44px; }
+  .bars i { flex:1; height:6px; border-radius:4px; background:#b5c2ce; transition: height .1s; }
+  .app[data-state="recording"] .bars i { background: var(--rec); }
+  .result { position:absolute; inset:0; background: var(--card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; opacity:0; pointer-events:none; transition: opacity .2s; }
+  .result.on { opacity:1; pointer-events:auto; }
+  .rhead svg { width:72px; height:72px; }
+  .rinfo { display:flex; align-items:center; gap:12px; font-size:22px; font-weight:700; }
+  .rinfo .len { font-family: var(--num); font-size:26px; }
+  .rfile { font-size:16px; color: var(--muted); max-width: 100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; word-spacing:normal; }
+  .play { display:flex; align-items:center; gap:12px; background: var(--teal-l); border-radius:999px; padding: 8px 18px 8px 8px; }
+  .play button { width:60px; height:60px; border-radius:50%; border:0; background: var(--teal); color:#fff; display:grid; place-items:center; }
+  .pbar { width: 220px; height:12px; background:#bfe0d9; border-radius:6px; overflow:hidden; } .pbar span { display:block; height:100%; width:0; background: var(--teal); }
+  .acts { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .acts button { min-width: 220px; height:60px; border-radius:16px; border:0; font-weight:700; font-size:22px; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .acts .pri { background: var(--teal); color:#fff; } .acts .sec { background:#fff; border:3px solid var(--edge); } .acts .red { background: var(--rec); color:#fff; }
+  .foot { display:flex; align-items:center; justify-content:center; gap:14px; font-size:18px; font-weight:700; color: #33415e; }
+  .foot .s { display:flex; align-items:center; gap:6px; white-space:nowrap; min-width: 10em; justify-content:center; }
+  .foot .s.wait { color: var(--sun-d); }
+  .foot .reopen { min-height:40px; border-radius:12px; border:3px solid var(--sun-d); background: var(--sun-l); color: var(--sun-d); font-weight:700; font-size:18px; padding: 0 14px; }
+  .hide { visibility:hidden; }
+  @media (max-width: 900px) {
+    .app { height:auto; grid-template-rows: auto 60px auto; }
+    .top { grid-template-columns: auto 1fr auto; padding: 8px 12px; } .dest { grid-column: 1 / -1; grid-row: 2; }
+    .body { grid-template-columns: 1fr; } .left { border-right:0; border-bottom: 2px solid var(--line); min-height: 320px; }
+    .right { grid-template-rows: 60px 420px 44px; } .st { width:auto; padding: 0 12px; font-size:18px; } .link { width: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+</style>
+</head>
+<body>
+<section id="kid" aria-label="こえぽけ 録音">
+  <div class="app" id="app" data-state="loading" data-mode="kanji">
+    <div class="top">
+      <div class="logo"><svg width="34" height="34" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 16h32v14a16 16 0 0 1-32 0z" fill="#0b7d72"/><path d="M8 16h32" stroke="#0a6b62" stroke-width="4" stroke-linecap="round"/><rect x="20" y="20" width="8" height="13" rx="4" fill="#fff"/><path d="M16 28a8 8 0 0 0 16 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg><span>こえぽけ</span></div>
+      <div class="dest" title="保存する場所（先生が決めました）"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#e8a800"/></svg><span class="nm" id="destName"></span><span class="chip" id="destChip"></span></div>
+      <div class="mode" role="group" aria-label="文字" id="kmode"><button id="mHira" aria-pressed="false" aria-label="ひらがな">あ</button><button id="mKanji" aria-pressed="true" aria-label="漢字">漢</button></div>
+    </div>
+    <nav class="steps" aria-label="進み方">
+      <div class="st" id="st1"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11V5a2 2 0 0 1 4 0v5h1a2 2 0 0 1 2 2v1h1a2 2 0 0 1 2 2v2a5 5 0 0 1-5 5h-2a6 6 0 0 1-5-3l-2-4a1.6 1.6 0 0 1 2.6-1.8L9 13z" fill="currentColor"/></svg></span><span data-t="s1"></span></div>
+      <div class="link" id="ln1"></div>
+      <div class="st" id="st2"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></span><span data-t="s2"></span></div>
+      <div class="link" id="ln2"></div>
+      <div class="st" id="st3"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span data-t="s3"></span></div>
+    </nav>
+    <div class="body">
+      <div class="left">
+        <div class="ptitle"><svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><circle cx="16" cy="18" r="7" fill="#0b7d72"/><circle cx="32" cy="18" r="7" fill="#0b7d72" opacity=".6"/><path d="M4 40a12 12 0 0 1 24 0zM20 40a12 12 0 0 1 24 0z" fill="#0b7d72" opacity=".85"/></svg><span data-t="whoTitle"></span></div>
+        <div class="tiles" id="tiles" role="group"></div>
+        <div class="free" id="free"><input id="freeName" maxlength="30" autocomplete="off"><small><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M5 5l14 14" stroke="currentColor" stroke-width="2.5"/></svg><span data-t="noName"></span></small></div>
+        <div class="lock" id="lock" aria-live="polite"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" fill="#4a5a70"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#4a5a70" stroke-width="2.5" fill="none"/></svg><div class="who" id="lockWho"></div><span id="lockMsg"></span></div>
+      </div>
+      <div class="right">
+        <div class="say" id="say" role="status" aria-live="polite"></div>
+        <div class="mid">
+          <div class="stage"><div class="ring">
+            <svg class="r" viewBox="0 0 260 260" aria-hidden="true"><circle cx="130" cy="130" r="120" stroke="#e6edf2" stroke-width="16" fill="none"/><circle id="arc" cx="130" cy="130" r="120" stroke="#0b7d72" stroke-width="16" fill="none" stroke-linecap="round" stroke-dasharray="754" stroke-dashoffset="754"/></svg>
+            <button class="big" id="big" disabled><svg id="bigIcon" viewBox="0 0 64 64" aria-hidden="true"></svg><span class="bl" id="bigLbl"></span></button>
+          </div></div>
+          <div class="tm">
+            <div class="time" aria-label="時間"><span class="now" id="tNow">0:00</span><span class="max">/30:00</span></div>
+            <div class="meter"><span class="mic"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="#fff"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></span><div class="bars" id="bars" aria-hidden="true"></div></div>
+          </div>
+          <div class="result" id="paneRes">
+            <div class="rhead" id="rhead"></div>
+            <div class="rinfo" id="rinfo"><svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="#e8a800"/><path d="M9 13l2 2 4-4" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg><span id="rInto"></span><span class="len" id="rLen"></span></div>
+            <div class="rfile" id="rfName"></div>
+            <div class="play" id="play"><button id="playBtn" aria-label="聞き返す"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path id="playShape" d="M7 4l13 8-13 8z" fill="#fff"/></svg></button><div class="pbar"><span id="pbar"></span></div></div>
+            <div class="acts" id="acts"></div>
+          </div>
+        </div>
+        <div class="foot">
+          <span class="s" id="fSend"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 0 1-.6-9.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z" fill="currentColor"/></svg><span id="fSendT"></span></span>
+          <span class="s" id="fKeep"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" fill="currentColor"/><rect x="9" y="18" width="6" height="2" fill="currentColor"/></svg><span data-t="keep"></span></span>
+          <button class="reopen hide" id="reopen"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <audio id="player" preload="metadata" hidden></audio>
+</section>
+
+<script id="logic">
+/* 入口との通信・送信・時間・音の判断（Nodeのテスト対象）。画面には依存しない。 */
+var Bridge = {
+  parseFragment: function (hash) {
+    var p = new URLSearchParams(String(hash || '').replace(/^#/, ''));
+    var origin = p.get('bridgeOrigin'), nonce = p.get('nonce'), portal = p.get('portal');
+    if (!/^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/.test(origin || '')) return null;
+    if (!/^[a-f0-9]{64}$/.test(nonce || '')) return null;
+    if (!/^https:\/\/script\.google\.com\/[A-Za-z0-9._\/-]+\/(exec|dev)$/.test(portal || '')) return null;
+    return { origin: origin, nonce: nonce, portal: portal };
+  },
+  acceptHello: function (conn, awaitingWin, ev, topOf) {
+    if (!conn || !awaitingWin || !ev || !ev.data || ev.data.type !== 'koepoke:hello') return false;
+    if (ev.origin !== conn.origin || !/^[a-f0-9]{64}$/.test(ev.data.nonce || '')) return false;
+    return topOf(ev.source) === awaitingWin;
+  },
+  acceptResult: function (conn, ev) {
+    return !!(conn && ev && ev.data && ev.data.type === 'koepoke:result' && ev.origin === conn.origin && ev.source === conn.parent && ev.data.nonce === conn.nonce);
+  }
+};
+var Logic = {
+  CHUNK: 1048576, MAX_BYTES: 16 * 1024 * 1024, LIMIT: 30 * 60,
+  nextSend: function (confirmed, available, stopped) {
+    var remaining = available - confirmed;
+    if (remaining <= 0) return null;
+    if (!stopped) return remaining >= this.CHUNK ? { start: confirmed, end: confirmed + this.CHUNK, isLast: false } : null;
+    if (remaining > this.CHUNK) return { start: confirmed, end: confirmed + this.CHUNK, isLast: false };
+    return { start: confirmed, end: available, isLast: true };
+  },
+  backoff: function (attempt, rand) { return Math.round(Math.min(30000, 1000 * Math.pow(2, attempt)) * (0.5 + rand)); },
+  clock: function (seconds, limit) { var s = Math.max(0, Math.floor(seconds)); return { text: Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'), warning: s >= limit - 60 && s < limit, stop: s >= limit }; },
+  pcm16: function (input) { var out = new Int16Array(input.length); for (var i = 0; i < input.length; i++) { var v = Math.max(-1, Math.min(1, input[i])); out[i] = v < 0 ? v * 0x8000 : v * 0x7fff; } return out; },
+  /** 名前リストの表示名（ひらがなが無ければ漢字） */
+  label: function (n, mode) { return mode === 'hira' && n.h ? n.h : n.k; },
+  /** 送信が何回続けて失敗したら「保存できませんでした」にするか（録音を終えたあと） */
+  giveUp: function (attempt, stopped) { return stopped && attempt >= 6; }
+};
+</script>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const T = {
+    s1: ['えらぶ', '選ぶ'], s2: ['ろくおん', '録音'], s3: ['できた', 'できた'],
+    whoTitle: ['だれが ろくおんする？', 'だれが録音する？'], noName: ['ひとの なまえは かかないでね', '人の名前は書かないでね'], freePh: ['じぶんで かく', '自分で書く'],
+    loading: ['じゅんび しています', '準備しています'], noConn: ['いりぐちから ひらいてね', '入口から開いてね'], cfgFail: ['せってい を よめません。せんせいに しらせてね', '設定を読めません。先生に知らせてね'],
+    pick: ['ひだりから なまえを えらんでね', '左から名前を選んでね'], ready: ['まるい ボタンを おしてね', '丸いボタンを押してね'], notOpen: ['いまは ろくおん できません', '今は録音できません'],
+    starting: ['マイクを じゅんび しています', 'マイクを準備しています'], noMic: ['マイクが つかえません。せんせいに しらせてね', 'マイクが使えません。先生に知らせてね'],
+    rec: ['ろくおん ちゅう', '録音中'], quiet: ['こえが ちいさいかも', '声が小さいかも'], oneMin: ['あと 1ぷんで おわります', 'あと1分で終わります'],
+    net: ['つながるのを まっています', 'つながるのを待っています'], portalClosed: ['いりぐちの がめんが とじました', '入口の画面が閉じました'],
+    finishing: ['のこりを おくっています', '残りを送っています'], saved: ['ほぞん できました', '保存できました'], failed: ['ほぞん できませんでした', '保存できませんでした'],
+    start: ['はじめる', '始める'], stop: ['おわる', '終わる'],
+    sendOk: ['とどいています', '届いています'], sendWait: ['まっています', '待っています'], keep: ['がめんを とじないでね', '画面を閉じないでね'], reopen: ['いりぐちを ひらく', '入口を開く'],
+    lockRec: ['おわるまで かえられません', '終わるまで変えられません'], lockDone: ['「あたらしく」で えらびなおせます', '「新しく」で選び直せます'],
+    again: ['あたらしく ろくおん', '新しく録音'], cont: ['つづけて ろくおん', '続けて録音'], retry: ['もういちど おくる', 'もう一度送る'],
+    into: ['せんせいの フォルダに はいったよ', '先生のフォルダに入ったよ'], teacher: ['せんせいに しらせてね', '先生に知らせてね'],
+    self: ['じぶんだけ', '自分だけ'], share: ['みんなで みる', '共有']
+  };
+  let mode = 'kanji'; const t = k => T[k][mode === 'hira' ? 0 : 1];
+  const ICON = {
+    point: '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H6m0 0 5-5m-5 5 5 5" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    press: '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#cc3a30"/><circle cx="12" cy="12" r="4" fill="#fff"/></svg>',
+    rec: '<i class="dot" aria-hidden="true"></i>',
+    clock: '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#c58b00"/><path d="M12 6v7l4 2" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>',
+    stop: '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#4a5a70"/><path d="M7 12h10" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>',
+    cloud: '<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a5 5 0 0 1-.6-9.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z" fill="currentColor"/></svg>',
+    ok: '<svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#0b7d72"/><path d="M6.5 12.5l3.5 3.5 7-8" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    bad: '<svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l11 20H1z" fill="#cc3a30"/><path d="M12 9v6" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="18" r="1.5" fill="#fff"/></svg>'
+  };
+  const COLORS = ['#0b7d72', '#2f6fc0', '#c58b00', '#cc3a30', '#7a4fb3', '#24854f', '#c8641f', '#4a5a70', '#b13a6c'];
+  const groupIcon = c => `<svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><circle cx="16" cy="17" r="7" fill="${c}"/><circle cx="32" cy="17" r="7" fill="${c}" opacity=".65"/><path d="M4 41a12 12 0 0 1 24 0zM20 41a12 12 0 0 1 24 0z" fill="${c}" opacity=".9"/></svg>`;
+  const fmt = s => Logic.clock(s, 1e9).text;
+
+  // Worker の刻み（画面が裏に回ってもタイマーが遅れにくい）
+  let ticker = null;
+  try { ticker = new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},100)'], { type: 'text/javascript' }))); } catch (e) { ticker = null; }
+  const sleep = ms => new Promise(r => { if (!ticker) return setTimeout(r, ms); const end = Date.now() + ms; const h = () => { if (Date.now() >= end) { ticker.removeEventListener('message', h); r(); } }; ticker.addEventListener('message', h); });
+  const onTick = f => { if (ticker) ticker.addEventListener('message', f); else setInterval(f, 250); };
+
+  // ---------------- 入口とのつながり ----------------
+  const info = Bridge.parseFragment(location.hash);
+  if (info) history.replaceState(null, '', location.pathname + location.search);
+  const conn = info && window.opener ? { origin: info.origin, nonce: info.nonce, portal: info.portal, parent: window.opener } : null;
+  let awaitingWin = null, seq = 0; const pending = new Map();
+  const connected = () => !!(conn && conn.parent && !conn.parent.closed);
+  const topOf = w => { try { return w && w.top; } catch (e) { return null; } };
+  const call = (method, ...args) => new Promise((resolve, reject) => {
+    if (!connected()) { reject(new Error('portal-closed')); return; }
+    const id = ++seq; const timer = setTimeout(() => { pending.delete(id); reject(new Error('timeout')); }, 60000);
+    pending.set(id, { resolve, reject, timer });
+    try { conn.parent.postMessage({ type: 'koepoke:request', nonce: conn.nonce, id, method, args }, conn.origin); }
+    catch (e) { clearTimeout(timer); pending.delete(id); reject(new Error('portal-closed')); }
+  });
+  window.addEventListener('message', ev => {
+    if (Bridge.acceptHello(conn, awaitingWin, ev, topOf)) {
+      conn.parent = ev.source; conn.nonce = ev.data.nonce; awaitingWin = null;
+      try { ev.source.postMessage({ type: 'koepoke:hello-ack', nonce: conn.nonce, hira: mode === 'hira' }, conn.origin); } catch (e) {}
+      render(); return;
+    }
+    if (!Bridge.acceptResult(conn, ev)) return;
+    const p = pending.get(ev.data.id); if (!p) return;
+    pending.delete(ev.data.id); clearTimeout(p.timer);
+    if (ev.data.error) p.reject(new Error(ev.data.error)); else p.resolve(ev.data.result);
+  });
+  setInterval(() => { if (conn && !connected()) { for (const [id, p] of pending) { pending.delete(id); clearTimeout(p.timer); p.reject(new Error('portal-closed')); } render(true); } }, 1000);
+  $('reopen').onclick = () => {
+    awaitingWin = window.open(conn.portal + '?reconnect=1', '_blank');
+    setTimeout(() => { if (awaitingWin) { awaitingWin = null; render(true); } }, 30000);
+  };
+
+  // ---------------- 状態 ----------------
+  let cfg = null, picked = null, state = 'loading', loadMsg = 'loading';
+  let rec = null;        // 1回の録音の情報
+  let netDown = false;
+  const bars = []; for (let i = 0; i < 22; i++) { const b = document.createElement('i'); $('bars').appendChild(b); bars.push(b); }
+
+  async function loadConfig() {
+    if (!conn) { state = 'loading'; loadMsg = 'noConn'; render(); return; }
+    try {
+      const c = await call('getConfig');
+      const first = !cfg; cfg = c;
+      if (first) { mode = c.defaultMode === 'hira' ? 'hira' : 'kanji'; }
+      $('kmode').style.visibility = c.canSwitch ? 'visible' : 'hidden';
+      if (state === 'loading') state = 'idle';
+      if (picked && !picked.free && !c.names.some(n => n.k === picked.k)) picked = null;
+      render();
+    } catch (e) { if (!cfg) { loadMsg = 'cfgFail'; render(); } }
+  }
+  setInterval(() => { if (state === 'idle') loadConfig(); }, 20000);
+
+  function renderTiles() {
+    const box = $('tiles'); box.textContent = '';
+    (cfg ? cfg.names : []).forEach((n, i) => {
+      const b = document.createElement('button'); b.className = 'tile';
+      b.innerHTML = groupIcon(COLORS[i % COLORS.length]);
+      const s = document.createElement('span'); s.className = 'lb'; s.textContent = Logic.label(n, mode); b.appendChild(s);
+      b.setAttribute('aria-pressed', String(!!picked && !picked.free && picked.k === n.k));
+      b.onclick = () => { if (state !== 'idle') return; picked = { k: n.k, h: n.h }; $('freeName').value = ''; render(); };
+      box.appendChild(b);
+    });
+    $('free').style.display = cfg && cfg.allowFree ? 'grid' : 'none';
+    $('freeName').placeholder = t('freePh');
+  }
+  $('freeName').addEventListener('input', e => { if (state !== 'idle') return; const v = e.target.value.trim().slice(0, 30); picked = v ? { k: v, h: '', free: true } : null; render(); });
+
+  function setSay(kind, key, icon) { const s = $('say'); s.dataset.k = kind; s.innerHTML = icon || ''; const sp = document.createElement('span'); sp.textContent = typeof key === 'string' && T[key] ? t(key) : key; s.appendChild(sp); }
+  let sayOverride = null; // 開始できなかった理由など、一時的な表示
+
+  function render(skipTiles) {
+    const app = $('app'); app.dataset.state = state; app.dataset.mode = mode;
+    $('mHira').setAttribute('aria-pressed', String(mode === 'hira')); $('mKanji').setAttribute('aria-pressed', String(mode === 'kanji'));
+    document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+    if (!skipTiles) renderTiles();
+    const isRec = state === 'recording', done = state === 'saved' || state === 'failed', busy = state === 'starting' || isRec || state === 'finishing';
+    const step = state === 'idle' || state === 'loading' ? (picked ? 2 : 1) : (done ? 3 : 2);
+    [1, 2, 3].forEach(i => { $('st' + i).dataset.s = i < step ? 'done' : i === step ? 'now' : 'next'; });
+    if (state === 'failed') $('st3').dataset.s = 'fail';
+    $('ln1').dataset.s = step > 1 ? 'done' : ''; $('ln2').dataset.s = step > 2 && state !== 'failed' ? 'done' : '';
+    const sec = rec ? rec.seconds : 0;
+    const portalGone = conn && !connected();
+    if (state === 'loading') setSay(loadMsg === 'loading' ? '' : 'bad', loadMsg, loadMsg === 'loading' ? ICON.cloud : ICON.bad);
+    else if (sayOverride && state === 'idle') setSay('bad', sayOverride, ICON.bad);
+    else if (state === 'idle') { if (!cfg.accepting) setSay('', 'notOpen', ICON.stop); else if (!picked) setSay('', 'pick', ICON.point); else setSay('ok', 'ready', ICON.press); }
+    else if (state === 'starting') setSay('ok', 'starting', ICON.cloud);
+    else if (isRec) { if (portalGone) setSay('warn', 'portalClosed', ICON.cloud); else if (netDown) setSay('warn', 'net', ICON.cloud); else if (sec >= Logic.LIMIT - 60) setSay('warn', 'oneMin', ICON.clock); else if (rec.quietFor > 3) setSay('warn', 'quiet', ICON.rec); else setSay('rec', 'rec', ICON.rec); }
+    else if (state === 'finishing') setSay(portalGone || netDown ? 'warn' : 'ok', portalGone ? 'portalClosed' : netDown ? 'net' : 'finishing', ICON.cloud);
+    else if (state === 'saved') setSay('ok', 'saved', ICON.ok);
+    else setSay('bad', 'failed', ICON.bad);
+    const big = $('big');
+    const canStart = state === 'idle' && !!picked && cfg && cfg.accepting;
+    big.classList.toggle('rec', isRec);
+    big.disabled = !(isRec || canStart);
+    $('bigLbl').textContent = isRec ? t('stop') : t('start');
+    $('bigIcon').innerHTML = isRec ? '<rect x="16" y="16" width="32" height="32" rx="7" fill="#fff"/>' : '<circle cx="32" cy="32" r="24" fill="#fff"/><circle cx="32" cy="32" r="14" fill="' + (canStart ? '#cc3a30' : '#9aaabb') + '"/>';
+    $('arc').setAttribute('stroke', isRec ? (sec >= Logic.LIMIT - 60 ? '#c58b00' : '#cc3a30') : '#0b7d72');
+    $('arc').setAttribute('stroke-dashoffset', String(754 * (1 - Math.min(1, sec / Logic.LIMIT))));
+    $('tNow').textContent = fmt(sec);
+    $('paneRes').classList.toggle('on', done);
+    if (done) renderResult();
+    const locked = state !== 'idle' && state !== 'loading';
+    $('lock').classList.toggle('on', locked);
+    $('lockWho').textContent = picked ? Logic.label(picked, mode) : '';
+    $('lockMsg').textContent = done ? t('lockDone') : t('lockRec');
+    $('freeName').disabled = locked;
+    $('fSend').classList.toggle('hide', !(isRec || state === 'finishing'));
+    $('fSend').classList.toggle('wait', netDown || portalGone);
+    $('fSendT').textContent = netDown || portalGone ? t('sendWait') : t('sendOk');
+    $('fKeep').classList.toggle('hide', !busy || portalGone);
+    $('reopen').textContent = t('reopen');
+    $('reopen').classList.toggle('hide', !(portalGone && (busy || done) && !awaitingWin));
+    const d = cfg ? cfg : { folderName: '', shared: false };
+    $('destName').textContent = rec ? rec.folderName || d.folderName : d.folderName;
+    $('destChip').className = 'chip ' + (d.shared ? 'share' : 'self'); $('destChip').textContent = cfg ? t(d.shared ? 'share' : 'self') : '';
+  }
+
+  function renderResult() {
+    const ok = state === 'saved';
+    $('rhead').innerHTML = (ok ? ICON.ok : ICON.bad).replace(/width="32" height="32"/, 'width="72" height="72"');
+    ['rinfo', 'play', 'rfName'].forEach(id => { $(id).style.visibility = ok ? 'visible' : 'hidden'; });
+    if (ok) { $('rInto').textContent = t('into'); $('rLen').textContent = fmt(rec.seconds); $('rfName').textContent = rec.folderName + ' ／ ' + rec.file; }
+    const acts = $('acts'); acts.textContent = '';
+    const mk = (cls, key, fn) => { const b = document.createElement('button'); b.className = cls; b.textContent = t(key); b.onclick = fn; acts.appendChild(b); };
+    if (!ok) mk('red', 'retry', () => { rec.attempt = 0; state = 'finishing'; render(); sendLoop(); });
+    else {
+      if (rec.reason === 'limit') mk('pri', 'cont', () => start(rec.token));
+      mk(rec.reason === 'limit' ? 'sec' : 'pri', 'again', () => { releasePlayer(); rec = null; picked = null; state = 'idle'; loadConfig(); render(); });
+    }
+  }
+
+  // ---------------- 録音（マイク → MP3 → 少しずつ保存） ----------------
+  $('big').onclick = () => { if (state === 'idle') start(null); else if (state === 'recording') stop('button'); };
+
+  async function start(prevToken) {
+    if (!picked) return;
+    sayOverride = null; releasePlayer();
+    state = 'starting'; render();
+    const r = { buffer: new Uint8Array(Logic.MAX_BYTES), available: 0, confirmed: 0, stopped: false, done: false, sends: 0, attempt: 0, pendingPcm: 0, seconds: 0, quietFor: 0, peak: 0 };
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      r.ctx = new Ctx(); await r.ctx.resume();
+      r.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: false, noiseSuppression: true, autoGainControl: false } });
+      r.worker = new Worker('encoder.js');
+      await new Promise((resolve, reject) => {
+        const to = setTimeout(() => reject(new Error('encoder')), 10000);
+        r.worker.onmessage = e => { if (e.data.type === 'ready') { clearTimeout(to); resolve(); } else if (e.data.type === 'error') { clearTimeout(to); reject(new Error('encoder')); } };
+        r.worker.postMessage({ type: 'init', rate: r.ctx.sampleRate });
+      });
+      const b = await call('begin', { name: picked.k, prevToken: prevToken || undefined });
+      Object.assign(r, { token: b.token, folderName: b.folderName, file: b.file, part: b.part });
+    } catch (e) {
+      await releaseMic(r);
+      state = 'idle';
+      sayOverride = e && e.name === 'NotAllowedError' || e && e.name === 'NotFoundError' || e && e.name === 'NotReadableError' ? t('noMic') : (e && e.message && !/portal-closed|timeout|encoder/.test(e.message) ? e.message : t('teacher'));
+      render(); return;
+    }
+    rec = r;
+    r.worker.onmessage = e => {
+      const m = e.data;
+      if (m.type === 'chunk') { r.pendingPcm = Math.max(0, r.pendingPcm - 1); append(r, new Uint8Array(m.buffer)); }
+      if (m.type === 'finished') { append(r, new Uint8Array(m.buffer)); if (r.finishResolve) r.finishResolve(); }
+      if (m.type === 'error') stop('encoder');
+    };
+    const src = r.ctx.createMediaStreamSource(r.stream);
+    const hp = r.ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 100;
+    const proc = r.ctx.createScriptProcessor(4096, 1, 1); const mute = r.ctx.createGain(); mute.gain.value = 0;
+    proc.onaudioprocess = ev => {
+      if (state !== 'recording' || rec !== r) return;
+      const input = ev.inputBuffer.getChannelData(0);
+      if (r.pendingPcm > 20) { stop('overload'); return; }
+      let peak = 0; for (let i = 0; i < input.length; i++) peak = Math.max(peak, Math.abs(input[i])); r.peak = peak;
+      const pcm = Logic.pcm16(input); r.worker.postMessage({ type: 'pcm', buffer: pcm.buffer }, [pcm.buffer]); r.pendingPcm++;
+    };
+    src.connect(hp); hp.connect(proc); proc.connect(mute); mute.connect(r.ctx.destination);
+    r.nodes = [src, hp, proc, mute];
+    r.stream.getAudioTracks().forEach(tr => tr.addEventListener('ended', () => stop('mic-ended')));
+    r.ctx.onstatechange = () => { if (state === 'recording' && rec === r && r.ctx.state !== 'running') stop('interrupted'); };
+    try { if (navigator.wakeLock) r.lock = await navigator.wakeLock.request('screen'); } catch (e) {}
+    r.startedAt = Date.now();
+    state = 'recording'; render();
+    onTick(() => tick(r));
+    sendLoop();
+  }
+
+  let lastRender = 0;
+  function tick(r) {
+    if (rec !== r || state !== 'recording') return;
+    r.seconds = (Date.now() - r.startedAt) / 1000;
+    if (r.peak < 0.02) r.quietFor += 0.1; else r.quietFor = 0;
+    if (Date.now() - lastRender > 150) {
+      lastRender = Date.now();
+      const p = Math.min(1, r.peak * 3);
+      bars.forEach((b, i) => { b.style.height = (6 + p * 36 * (0.35 + 0.65 * Math.abs(Math.sin(i * .55 + r.seconds * 6)))) + 'px'; });
+      render(true);
+    }
+    if (Logic.clock(r.seconds, Logic.LIMIT).stop) stop('limit');
+  }
+
+  function append(r, bytes) {
+    const n = Math.min(bytes.length, r.buffer.length - r.available);
+    r.buffer.set(bytes.subarray(0, n), r.available); r.available += n;
+    if (n < bytes.length) stop('full');
+  }
+
+  async function releaseMic(r) {
+    (r.nodes || []).forEach(n => { try { n.disconnect(); } catch (e) {} });
+    if (r.stream) r.stream.getTracks().forEach(tr => tr.stop());
+    if (r.ctx) { r.ctx.onstatechange = null; try { await r.ctx.close(); } catch (e) {} }
+    if (r.lock) { try { await r.lock.release(); } catch (e) {} }
+  }
+
+  async function stop(reason) {
+    const r = rec; if (!r || state !== 'recording') return;
+    r.reason = reason; state = 'finishing'; bars.forEach(b => { b.style.height = '6px'; }); render();
+    await releaseMic(r);
+    await new Promise(res => { r.finishResolve = res; setTimeout(res, 10000); try { r.worker.postMessage({ type: 'finish' }); } catch (e) { res(); } });
+    try { r.worker.terminate(); } catch (e) {}
+    r.seconds = Math.min(Logic.LIMIT, r.seconds);
+    r.stopped = true; render();
+  }
+
+  const toBase64 = b => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
+
+  async function sendLoop() {
+    const r = rec;
+    while (rec === r && !r.done) {
+      const next = Logic.nextSend(r.confirmed, r.available, r.stopped);
+      if (!next) {
+        if (r.stopped && r.confirmed === r.available) { if (await complete(r)) return; continue; }
+        await sleep(300); continue;
+      }
+      try {
+        const res = await call('c1Chunk', r.token, next.start, toBase64(r.buffer.subarray(next.start, next.end)), next.isLast, next.isLast ? next.end : null);
+        r.attempt = 0; netDown = false;
+        r.confirmed = res.done ? r.available : res.received;
+        if (res.done) { if (await complete(r)) return; }
+      } catch (e) {
+        if (!(await retryWait(r))) return;
+      }
+      render(true);
+    }
+  }
+  async function retryWait(r) {
+    netDown = true; render(true);
+    if (Logic.giveUp(r.attempt, r.stopped)) { state = 'failed'; render(); return false; }
+    await sleep(Logic.backoff(r.attempt++, Math.random()));
+    try { const s = await call('c1Status', r.token); r.confirmed = s.done ? r.available : s.received; netDown = false; } catch (e2) {}
+    return true;
+  }
+  async function complete(r) {
+    try {
+      if (r.confirmed !== r.available || !r.closed) { const c = await call('c1Close', r.token, r.available); r.closed = true; if (!c.done) { r.confirmed = c.received; return false; } }
+      const f = await call('finish', r.token, Math.round(r.seconds));
+      if (f.size !== r.available) { r.attempt = 6; throw new Error('size'); }
+      r.done = true; netDown = false;
+      preparePlayer(r); state = 'saved'; render();
+      return true;
+    } catch (e) { return !(await retryWait(r)) ? true : false; }
+  }
+
+  // 聞き返し（端末のメモリにある控えを再生）
+  const player = $('player'); let playerUrl = null;
+  function preparePlayer(r) { releasePlayer(); playerUrl = URL.createObjectURL(new Blob([r.buffer.subarray(0, r.available)], { type: 'audio/mpeg' })); player.src = playerUrl; }
+  function releasePlayer() { try { player.pause(); } catch (e) {} if (playerUrl) { URL.revokeObjectURL(playerUrl); playerUrl = null; } player.removeAttribute('src'); $('pbar').style.width = '0'; $('playShape').setAttribute('d', 'M7 4l13 8-13 8z'); }
+  $('playBtn').onclick = () => { if (!playerUrl) return; if (player.paused) player.play(); else player.pause(); };
+  player.addEventListener('play', () => $('playShape').setAttribute('d', 'M6 4h4v16H6zM14 4h4v16h-4z'));
+  player.addEventListener('pause', () => $('playShape').setAttribute('d', 'M7 4l13 8-13 8z'));
+  player.addEventListener('timeupdate', () => { if (player.duration) $('pbar').style.width = (100 * player.currentTime / player.duration) + '%'; });
+
+  $('mHira').onclick = () => { mode = 'hira'; render(); };
+  $('mKanji').onclick = () => { mode = 'kanji'; render(); };
+  window.addEventListener('beforeunload', ev => { if (rec && !rec.done) { ev.preventDefault(); ev.returnValue = ''; } });
+
+  render(); loadConfig();
+})();
+</script>
+</body>
+</html>
