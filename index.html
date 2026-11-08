@@ -214,6 +214,7 @@ var Logic = {
     lockRec: ['おわるまで かえられません', '終わるまで変えられません'], lockDone: ['「あたらしく」で えらびなおせます', '「新しく」で選び直せます'],
     again: ['あたらしく ろくおん', '新しく録音'], cont: ['つづけて ろくおん', '続けて録音'], retry: ['もういちど おくる', 'もう一度送る'],
     into: ['せんせいの フォルダに はいったよ', '先生のフォルダに入ったよ'], teacher: ['せんせいに しらせてね', '先生に知らせてね'],
+    rescue: ['せんせいよう：てもとに ほぞん', '先生用：手元に保存'], rescued: ['ほぞんしました。Driveに いれたら たんまつから けしてね', '保存しました。Driveに入れたら端末から消してください'],
     self: ['じぶんだけ', '自分だけ'], share: ['みんなで みる', '共有']
   };
   let mode = 'kanji'; const t = k => T[k][mode === 'hira' ? 0 : 1];
@@ -359,9 +360,20 @@ var Logic = {
     ['rinfo', 'play', 'rfName'].forEach(id => { $(id).style.visibility = ok ? 'visible' : 'hidden'; });
     if (ok) { $('rInto').textContent = t('into'); $('rLen').textContent = fmt(rec.seconds); $('rfName').textContent = rec.folderName + ' ／ ' + rec.file; }
     const acts = $('acts'); acts.textContent = '';
-    const mk = (cls, key, fn) => { const b = document.createElement('button'); b.className = cls; b.textContent = t(key); b.onclick = fn; acts.appendChild(b); };
-    if (!ok) mk('red', 'retry', () => { rec.attempt = 0; state = 'finishing'; render(); sendLoop(); });
-    else {
+    const mk = (cls, key, fn) => { const b = document.createElement('button'); b.className = cls; b.textContent = t(key); b.onclick = fn; acts.appendChild(b); return b; };
+    if (!ok) {
+      mk('red', 'retry', () => { rec.attempt = 0; state = 'finishing'; render(); sendLoop(); });
+      // 先生のアカウントで開いているときだけ、救済用のダウンロード（児童には出さない。仕様 §7.3）
+      if (cfg && cfg.isTeacher && rec && rec.available > 0) {
+        const rb = mk('sec', 'rescue', () => {
+          const url = URL.createObjectURL(new Blob([rec.buffer.subarray(0, rec.available)], { type: 'audio/mpeg' }));
+          const a = document.createElement('a'); a.href = url; a.download = rec.file || 'こえぽけ_録音.mp3'; document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+          rec.rescued = true; rb.textContent = t('rescued'); rb.disabled = true;
+        });
+        if (rec.rescued) { rb.textContent = t('rescued'); rb.disabled = true; }
+      }
+    } else {
       if (rec.reason === 'limit') mk('pri', 'cont', () => start(rec.token));
       mk(rec.reason === 'limit' ? 'sec' : 'pri', 'again', () => { releasePlayer(); rec = null; picked = null; state = 'idle'; loadConfig(); render(); });
     }
